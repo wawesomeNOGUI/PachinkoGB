@@ -222,14 +222,17 @@ Start:
 
     ;the ball variables will be updated after every render
 
-    xor a         ;starting x and y velocity = 1
-    inc a
+
+    ld a, 100       ;starting x and y velocity
     ld [$C002], a ;x velocity
     ld [$C003], a ;y velocity
 
     ld a, 1
-    ld [$C004], a ;0=negative, 1=positive x velocity
-    ld [$C005], a ;0=negative, 1=positive y velocity
+    ld [$C004], a ;%11111111=negative, 1=positive x velocity
+    ld [$C005], a ;%11111111=negative, 1=positive y velocity
+
+    ld a, 20
+    ld [$C006], a ;gravity speed counter
 
 
 
@@ -310,7 +313,7 @@ Dropper:
     ld [$FF00], a
 
 
-    ld a, [$FF00]  ;good to check joypad register multiple times?
+    ld a, [$FF00]  ;good to check joypad register multiple times
     ld a, [$FF00]
     ld a, [$FF00]
 
@@ -337,22 +340,42 @@ Dropper:
     ;Dropper Movement Delay
     inc b
     ld a, b
-    cp a, 20
+    cp a, 30
     jr nz, Dropper
 
     ld b, 0    ;reset counter
 
 ;move ball back and forth with dropper
-    ld a, 1
-    ld [$C002], a ;set x velocity to 1
+;first check if ball near wall
+    ld a, [$C000]                     ;ball x
+    cp a, 150                         ;150 = slightly left of right wall
+    jr nc, .flipDropperTrajectory     ;if a >= 150
 
-.moveRight
-    ld a, [$C002]  ;velocity
-    ld c, a
-    ld a, [$FE01]  ;x pos
-    add a, c
-    ld [$FE01], a  ;add velocity to move
+    ;if not hitting right wall, check if hitting left
+    cp a, 14                          ;slightly right of left wall
+    jr z, .flipDropperTrajectory      ;if a ==
+    jr c, .flipDropperTrajectory      ;if a <
+
+    ;else, move dropper
+    jr .moveDropper
+
+.flipDropperTrajectory
+    ld a, [$C004]
+    xor a, %11111110    ;flip direction between 1 and negative 1
+    ld [$C004], a       ;load new direction back into WRAM
+
+.moveDropper
+    ld hl, $C000        ;ball x
+    ld a, [$C004]       ;x neg or pos
+    add a, [hl]         ;add 1 or -1
+    ld [hl], a          ;load new x into WRAM
+
+    ld [$FE01], a       ;and load x into OAM
+
     jr Dropper
+
+
+.ballDropped
 
 ;update WRAM ball X ball Y
     ld a, [$FE01]
@@ -360,7 +383,6 @@ Dropper:
     ld a, [$FE00]
     ld [$C001], a
 
-.ballDropped
 
 
 
@@ -475,51 +497,55 @@ MainLoop:
    jr c, .waitVBlank
 
 .velocityX
-    inc b              ;counter for x velocity
+    dec b              ;counter for x velocity
+                       ;(decrement so the Bigger $C002 is, the quicker the speed)
     ld a, [$C002]      ;x speed (velocity)
     cp a, b
     jr nz, .velocityY   ;if != , jump to y velocity
 
     ;else add or subtract 1 to x, and reset b  (subtract = add %11111111)
-    ld a, [$C000]     ;ball x
-    ld hl, $C004      ;neg or pos x velocity
-    add a, [hl]       ;increment velocity in WRAM
+    ld hl, $C000       ;ball x
+    ld a, [$C004]      ;neg or pos x velocity
+    add a, [hl]        ;increment velocity in WRAM
     ld [hl], a
-    ld [$FE01], a     ;and increment in OAM
-    ld b, 0           ;reset counter
+    ld [$FE01], a      ;and increment in OAM
+    ld b, 0            ;reset counter
 
 
 .velocityY
-    inc c              ;counter for y velocity
+    dec c              ;counter for y velocity
     ld a, [$C003]      ;y speed (velocity)
     cp a, c
-    jr nz, .gravity  ;if != , jump to gravity
+    jr nz, .gravity    ;if != , jump to gravity
 
     ;else add or subtract 1 to y, and reset c  (subtract = add %11111111)
-    ld a, [$C001]     ;ball y
-    ld hl, $C005      ;neg or pos y velocity
-    add a, [hl]       ;increment velocity in WRAM
+    ld hl, $C001       ;ball y
+    ld a, [$C005]      ;neg or pos y velocity
+    add a, [hl]        ;increment velocity in WRAM
     ld [hl], a
-    ld [$FE00], a     ;and increment in OAM
-    ld c, 0           ;reset counter y velocity
+    ld [$FE00], a      ;and increment in OAM
+    ld c, 0            ;reset counter y velocity
 
 
 .gravity
-    inc d   ;gravity counter
+
+    dec d              ;gravity counter
     ld a, d
-    ld h, 0  ;just used as a for loop counter
-.gravAdd
-    inc e
-    inc h
-    cp a, h
-    jr nz, .gravAdd  ;inc e d times
+    ld hl, $C006       ;gravity speed
+    cp a, [hl]
+    jr nz, .draw       ;if != then goto .draw
 
-    ld a, e
-    cp a, d       ;if these equal, do grav
-    jr nz, .draw  ;else go to .draw
-
+    ;else do gravity
     ld a, [$FE00]
-    add a, %11111111   ;subtract one from y for gravity
+    inc a              ;move sprite in OAM
+    ld [$FE00], a
+
+    ld a, [$C001]
+    inc a              ;move sprite y in WRAM
+    ld [$C001], a
+
+    ld d, 0            ;reset counter
+
 
 
 .draw
