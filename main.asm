@@ -507,7 +507,7 @@ ld [$FE05], a
   xor a, [hl]      ;flip between %11111111 and %00000001 (add %11111111 == -1)
   ld [hl], a       ;store neg or pos in x velocity flag variable
 
-  ld a, [$C000]    ;move ball away from wall by one
+  ld a, [$C000]    ;move ball away from wall by two
   add a, [hl]
   add a, [hl]
   ld [$C000], a
