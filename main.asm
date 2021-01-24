@@ -99,7 +99,7 @@ Start:
     xor a
     ld [hli], a
     ld a, l
-    cp a, $A0          ;Gameboy is 160 pixels wide
+    cp a, $FE          ;Gameboy is 160 pixels wide, Clear All $D000 - $D0FE
     jr nz, .clearWRX
 
 
@@ -108,7 +108,7 @@ Start:
     xor a
     ld [hli], a
     ld a, l
-    cp a, $90          ;Gameboy is 144 pixels wide
+    cp a, $FE          ;Gameboy is 144 pixels wide, clear $D100 - $D1FE
     jr nz, .clearWRY
 
 ;After clearing area in work RAM, place the x and y locations of the pins in the
@@ -125,16 +125,35 @@ Start:
 .pinXY
     ld h, $D0    ;x WR
     ld l, d
-    ld [hl], d   ;ld x value into that location of WR
+    ld a, d       ;can only do hli with a
+    ld [hli], a   ;ld x value into that location of WR & inc hl,
+    inc a         ;do 4 times to give more x's for pin hit detection
+    ld [hli], a
+    inc a
+    ld [hli], a
+    inc a
+    ld [hli], a
+    inc a
+    ld [hl], a   ;24
+    ld d, a      ;set d to a
 
     ld a, d
-    add a, 16    ;add 16 to x
+    add a, 12    ;add 12 to x (usually 16, but four adds above)
     ld d, a
 
-    ld h, $D1    ;y WR
+    ld h, $D1     ;y WR
     ld l, b
+  ;  ld a, b       ;can only do hli with a
     ld [hl], b   ;ld y value into that location of WR
-
+  ;  inc a         ;do 4 times to give more y's for pin hit detection
+  ;  ld [hli], a
+  ;  inc a
+  ;  ld [hli], a
+  ;  inc a
+  ;  ld [hli], a
+  ;  inc a
+  ;  ld [hl], a    ;72
+  ;  ld b, a       ;set b to a
 
     inc c        ;line counter
     inc e        ;pin counter
@@ -214,16 +233,16 @@ Start:
 ;========================================
 ;Ball Variables Setup
 ;========================================
-    ld a, 84      ;x + 4   current ball x  (+4 to get middle of ball)
+    ld a, 80     ;current ball  (do +4 to get middle of ball)
     ld [$C000], a
 
-    ld a, 54      ;y + 4   current ball y  (+4 to get middle of ball)
+    ld a, 50      ;current ball y  (do +4 to get middle of ball)
     ld [$C001], a
 
     ;the ball variables will be updated after every render
 
 
-    ld a, 100       ;starting x and y velocity
+    ld a, 30       ;starting x and y velocity
     ld [$C002], a ;x velocity
     ld [$C003], a ;y velocity
 
@@ -231,7 +250,7 @@ Start:
     ld [$C004], a ;%11111111=negative, 1=positive x velocity
     ld [$C005], a ;%11111111=negative, 1=positive y velocity
 
-    ld a, 20
+    ld a, 164
     ld [$C006], a ;gravity speed counter
 
 
@@ -340,7 +359,7 @@ Dropper:
     ;Dropper Movement Delay
     inc b
     ld a, b
-    cp a, 30
+    cp a, 30        ;30 same starting x speed in [$C002]
     jr nz, Dropper
 
     ld b, 0    ;reset counter
@@ -372,16 +391,16 @@ Dropper:
 
     ld [$FE01], a       ;and load x into OAM
 
+    ld a, [$FE00]       ;ld y
+    ld [$C001], a
+
     jr Dropper
 
 
 .ballDropped
 
-;update WRAM ball X ball Y
-    ld a, [$FE01]
-    ld [$C000], a
-    ld a, [$FE00]
-    ld [$C001], a
+
+
 
 
 
@@ -390,8 +409,8 @@ Dropper:
 ;Main Looooop
 ;=====================================
 
-   ld b, 0   ;counter for velocity x  (speed)
-   ld c, 0   ;counter for velocity y  (speed)
+   ld b, 0   ;counter for velocity x & y (speed)
+   ld c, 0   ;counter for loop
    ld d, 0   ;counter for gravity
    ld e, 0   ;second counter for gravity
 MainLoop:
@@ -402,54 +421,82 @@ MainLoop:
 
 ;Check if Hitting Walls First
    ld a, [$C000]           ;ball x
-   cp a, 156               ;156 = right wall
-   jr nc, .hitWall         ;if a >= 156
+   cp a, 159               ;159 = right wall
+   jr nc, .hitWall         ;if a >= 159
 
    ;if not hitting right wall, check if hitting left
-   cp a, 4             ;4 = left wall
-   jr z, .hitWall      ;if a == 4
-   jr c, .hitWall      ;if a < 4
+   cp a, 9             ;9 = left wall
+   jr z, .hitWall      ;if a == 9
+   jr c, .hitWall      ;if a < 9
 
 ;Next Check if hitting a Pin
    ;first check x's
-   ld hl, $C004  ;x pos or neg velocity
-   add a, [hl]   ;+ or - 2 for ball's width
-   add a, [hl]
+.CheckX
+;   ld hl, $C004   ;x pos or neg velocity
+;   add a, 2       ;offset to get center of circle instead of top left
+;   add a, [hl]    ;+ or - 1 for ball's width
 
    ld h, $D0
-   ld l, a          ;x location in WRAM
-   xor a            ;set a to zero
-   cp a, [hl]       ;0 - [hl]  (check [hl] != 0) which means there's a pin there
-   jr nz, .Animate  ;no zero flag set == not equal to 0, x not a pin, go to animate
+   add a, 4          ;get middle of ball
+   ld l, a           ;x location in WRAM ($C000)
+
+   cp a, [hl]        ;x - [hl]  (check if [hl] == [$C000]) which means there's a pin there
+
+ld [$FE05], a
+   .waitVBlankT
+      ld a, [rLY]
+      cp 144 ; Check if the LCD is in VBlank
+      jr c, .waitVBlankT
+
+
+
+   jr z, .CheckY     ;z == pin x there
+   jr nz, .Animate   ;if [hl] and [$C000] aren't the same, goto animate
+
+
 
    ;if x equals a possible pin x, check y
+.CheckY
    ld a, [$C001]    ;ld a with ball's y
-   ld hl, $C005     ;y pos or neg velocity
-   add a, [hl]      ;+ or - 2 for ball's height
-   add a, [hl]
 
    ld h, $D1
-   ld l, a
-   xor a
-   cp a, [hl]       ;0 - [hl]  (check [hl] != 0) which means there's a pin there
+   add a, 4         ;get middle of ball
+   ld l, a          ;y location in WRAM ($C001)
+
+
+   cp a, [hl]       ;y - [hl]  (check if [hl] == [$C001]) which means there's a pin there
+   jr z, .bounce    ;z == pin there
    jr nz, .Animate
 
    ;If the Program Counter Gets here, that means the ball's x & y were over
    ;a pin, so bounce!
 
-;Bounce
+.bounce
     ld a, %11111110
     ld hl, $C004     ;x neg or pos velocity
     xor a, [hl]      ;flip between %11111111 and %00000001 (add %11111111 == -1)
     ld [hl], a       ;store flipped value back in memory
+
+    ld a, [$C000]    ;bump ball left or right 2
+    add a, [hl]
+    add a, [hl]
+    ld [$C000], a
 
     ld a, %11111110
     ld hl, $C005     ;y neg or pos velocity
     xor a, [hl]      ;flip between %11111111 and %00000001 (add %11111111 == -1)
     ld [hl], a       ;store flipped value back in memory
 
-    ld d, 0          ;gravity back to 0
-    ld e, 0
+    ld a, [$C001]    ;bump ball up or down 2
+    add a, [hl]
+    add a, [hl]
+    ld [$C001], a
+
+;    ld d, 0          ;gravity back to 0
+;    ld e, 0
+
+
+
 
     jr .Animate
 
@@ -458,8 +505,23 @@ MainLoop:
   ld a, %11111110
   ld hl, $C004     ;x neg or pos velocity
   xor a, [hl]      ;flip between %11111111 and %00000001 (add %11111111 == -1)
-  ld [hl], a       ;store neg or pos in x velcity flag variable
+  ld [hl], a       ;store neg or pos in x velocity flag variable
+
+  ld a, [$C000]    ;move ball away from wall by one
+  add a, [hl]
+  add a, [hl]
+  ld [$C000], a
+
+;  .waitVBlankT
+;     ld a, [rLY]
+;     cp 144 ; Check if the LCD is in VBlank
+;     jr c, .waitVBlankT
+;
+;      ld a, [$C004]
+;      ld [$FE04], a
+
   jr .Animate
+
 
 
 
@@ -496,12 +558,27 @@ MainLoop:
    cp 144 ; Check if the LCD is in VBlank
    jr c, .waitVBlank
 
+;   ld a, [$C001]
+;   add a, 4
+;   ld [$FE04], a
+;   ld a, [$C000]
+;   add a, 4
+;   ld [$FE05], a
+
 .velocityX
-    dec b              ;counter for x velocity
+    inc b               ;x speed counter
+    ld a, b
+    ld hl, $C002        ;x speed
+    cp a, [hl]
+    jr nz, .velocityY
+
+    ld b, 0    ;reset counter
+
+  ;  dec b              ;counter for x velocity
                        ;(decrement so the Bigger $C002 is, the quicker the speed)
-    ld a, [$C002]      ;x speed (velocity)
-    cp a, b
-    jr nz, .velocityY   ;if != , jump to y velocity
+  ;  ld a, [$C002]      ;x speed (velocity)
+  ;  cp a, b
+  ;  jr nz, .gravity   ;if != , jump to gravity
 
     ;else add or subtract 1 to x, and reset b  (subtract = add %11111111)
     ld hl, $C000       ;ball x
@@ -509,50 +586,64 @@ MainLoop:
     add a, [hl]        ;increment velocity in WRAM
     ld [hl], a
     ld [$FE01], a      ;and increment in OAM
-    ld b, 0            ;reset counter
+;    ld b, 0            ;reset counter
 
 
 .velocityY
-    dec c              ;counter for y velocity
-    ld a, [$C003]      ;y speed (velocity)
-    cp a, c
-    jr nz, .gravity    ;if != , jump to gravity
+    inc c              ;y speed counter
+    ld a, c
+    ld hl, $C003       ;y speed
+    cp a, [hl]
+    jr nz, .gravity
 
-    ;else add or subtract 1 to y, and reset c  (subtract = add %11111111)
+    ld c, 0    ;reset counter
+
+    ;add or subtract 1 to y, and reset c  (subtract = add %11111111)
     ld hl, $C001       ;ball y
     ld a, [$C005]      ;neg or pos y velocity
     add a, [hl]        ;increment velocity in WRAM
     ld [hl], a
     ld [$FE00], a      ;and increment in OAM
-    ld c, 0            ;reset counter y velocity
+    ;ld c, 0           ;reset counter y velocity
 
 
 .gravity
 
-    dec d              ;gravity counter
+
+jr .draw
+    ;jr z, .gravMove    ;if at max velocity goto grav move, else do acceleration
+
+    ;gravity acceleration
+    inc d              ;gravity counter
     ld a, d
-    ld hl, $C006       ;gravity speed
-    cp a, [hl]
+  ;  ld hl, $C006       ;slows down grav acceleration
+    cp a, 30
     jr nz, .draw       ;if != then goto .draw
 
-    ;else do gravity
-    ld a, [$FE00]
-    inc a              ;move sprite in OAM
-    ld [$FE00], a
-
-    ld a, [$C001]
-    inc a              ;move sprite y in WRAM
-    ld [$C001], a
-
     ld d, 0            ;reset counter
+
+    ;check if at terminal velocity, if so, don't increment grav C006 anymore
+    ld a, [hl]
+    cp a, 230
+    jr z, .gravMove
+
+    ;else, accelerate
+    inc [hl]           ;accelerate
+
+
+.gravMove
+    ld a, [$C001]      ;ball y
+    inc a
+    ld [$FE00], a      ;move sprite in OAM
+    ld [$C001], a      ;move sprite y in WRAM
 
 
 
 .draw
-    ld a, [$FE01]
-    ld [$C000], a
-    ld a, [$FE00]
-    ld [$C001], a
+    ld a, [$C000]
+    ld [$FE01], a
+    ld a, [$C001]
+    ld [$FE00], a
 
 
     jp MainLoop   ;return to main loop
