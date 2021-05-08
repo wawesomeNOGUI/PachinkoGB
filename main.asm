@@ -133,8 +133,8 @@ Start:
     ;ld [hli], a
     ;inc a
     ;ld [hli], a
-    inc a
-    ld [hl], a   ;24
+    ;inc a
+    ;ld [hl], a   ;24
     ld d, a      ;set d to a
 
     ld a, d
@@ -475,9 +475,6 @@ MainLoop:
     add a, [hl]
     ld [$C000], a
 
-    ld hl, $C002
-    inc [hl]
-
     ld a, %11111110
     ld hl, $C005     ;y neg or pos velocity
     xor a, [hl]      ;flip between %11111111 and %00000001 (add %11111111 == -1)
@@ -488,11 +485,17 @@ MainLoop:
     add a, [hl]
     ld [$C001], a
 
-    ;ld d, 0          ;gravity back to 0
-;    ld e, 0
-
-
-
+    ld a, [$C003]     ;take some y velocity away from bounce loss
+    cp a, 240
+    jr z, .xTake
+    add a, 15
+    ld [$C003], a
+    .xTake
+    ld a, [$C002]
+    cp a, 240
+    jr z, .Animate
+    add a, 15
+    ld [$C002], a
 
     jr .Animate
 
@@ -621,13 +624,6 @@ MainLoop:
     .wait:           ;
     bit  1,[hl]       ; Wait until Mode is 0 or 1
     jr   nz,.wait    ;
-
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
 
 
 
