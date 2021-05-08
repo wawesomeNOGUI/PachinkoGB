@@ -242,7 +242,7 @@ Start:
     ;the ball variables will be updated after every render
 
 
-    ld a, 130       ;starting x velocity
+    ld a, 255       ;starting x velocity
     ld [$C002], a  ;x velocity
     ld a, 255      ;starting y velocity
     ld [$C003], a  ;y velocity
@@ -485,23 +485,23 @@ MainLoop:
     add a, [hl]
     ld [$C001], a
 
-    ld a, [$C003]     ;take some y velocity away from bounce loss
-    cp a, 240
-    jr nc, .xTake
+    ;ld a, [$C003]     ;take some y velocity away from bounce loss
+    ;cp a, 240
+    ;jr nc, .xTake     ;a >= 240
 
-    ld a, %11111111
-    cp a, [hl]        ;check if ball going up
-    jr nz, .xTake
+    ;ld a, %11111111
+    ;cp a, [hl]        ;check if ball going up
+    ;jr nz, .xTake
 
-    ld a, [$C003]
-    add a, 15         ;if going up take away velocity
-    ld [$C003], a
+    ;ld a, [$C003]
+    ;add a, 15         ;if going up take away velocity
+    ;ld [$C003], a
 
-    .xTake            ;take some x velocity away
+    .xTake            ;add some x velocity
     ld a, [$C002]
     cp a, 240
     jr nc, .Animate
-    add a, 15
+    sub a, 1
     ld [$C002], a
 
     jr .Animate
@@ -598,16 +598,16 @@ MainLoop:
     ;Do grav
     ld a, [$C003]
     ;inc [hl]           ;slow down upward movement
-    add a, 15
+    add a, 20
     ld [$C003], a
 
-    cp a, 255          ;max slowness
-    jr nz, .resolve
+    cp a, 240           ;max slowness
+    jr c, .resolve
 
-    ;set y speed counter to slowest speed (if $C003 not 255)
-    ;ld [hl], 255
+    ld a, 255
+    ld [$C003], a
 
-    ld a, %11111110    ;flip velocity direction
+    ld a, %11111110     ;flip velocity direction
     ld hl, $C005
     xor a, [hl]
     ld [hl], a
@@ -627,6 +627,15 @@ MainLoop:
 
 
 .draw
+    .testLoop
+    inc d
+    ld a, 20
+    cp a, d
+    jr nz, .testLoop
+
+    ld d, 0
+
+
     ld   hl,$FF41     ;-STAT Register
     .wait:           ;
     bit  1,[hl]       ; Wait until Mode is 0 or 1
