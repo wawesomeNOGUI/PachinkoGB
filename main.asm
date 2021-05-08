@@ -127,14 +127,14 @@ Start:
     ld l, d
     ld a, d       ;can only do hli with a
     ld [hli], a   ;ld x value into that location of WR & inc hl,
-    inc a         ;do 4 times to give more x's for pin hit detection
-    ld [hli], a
-    inc a
-    ld [hli], a
-    inc a
-    ld [hli], a
-    inc a
-    ld [hl], a   ;24
+    ;inc a         ;do 4 times to give more x's for pin hit detection
+    ;ld [hli], a
+    ;inc a
+    ;ld [hli], a
+    ;inc a
+    ;ld [hli], a
+    ;inc a
+    ;ld [hl], a   ;24
     ld d, a      ;set d to a
 
     ld a, d
@@ -621,6 +621,16 @@ MainLoop:
     .wait:           ;
     bit  1,[hl]       ; Wait until Mode is 0 or 1
     jr   nz,.wait    ;
+
+    nop
+    nop
+
+    nop
+    nop
+    nop
+    nop
+    
+
 
      ;1140 M-cycles can be performed by the cpu during vblank
 
