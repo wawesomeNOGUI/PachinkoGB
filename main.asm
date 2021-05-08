@@ -233,7 +233,7 @@ Start:
 ;========================================
 ;Ball Variables Setup
 ;========================================
-    ld a, 80     ;current ball  (do +4 to get middle of ball)
+    ld a, 80      ;current ball x (do +4 to get middle of ball)
     ld [$C000], a
 
     ld a, 50      ;current ball y  (do +4 to get middle of ball)
@@ -442,15 +442,7 @@ MainLoop:
 
    cp a, [hl]        ;x - [hl]  (check if [hl] == [$C000]) which means there's a pin there
 
-ld [$FE05], a
-   .waitVBlankT
-      ld a, [rLY]
-      cp 144 ; Check if the LCD is in VBlank
-      jr c, .waitVBlankT
-
-
-
-   jr z, .CheckY     ;z == pin x there
+   ;jr z, .CheckY     ;z == pin x there
    jr nz, .Animate   ;if [hl] and [$C000] aren't the same, goto animate
 
 
@@ -492,7 +484,7 @@ ld [$FE05], a
     add a, [hl]
     ld [$C001], a
 
-;    ld d, 0          ;gravity back to 0
+    ld d, 0          ;gravity back to 0
 ;    ld e, 0
 
 
@@ -551,19 +543,7 @@ ld [$FE05], a
 .Animate
 ;=====================
 
-;1140 M-cycles can be performed by the cpu during vblank
-
-.waitVBlank
-   ld a, [rLY]
-   cp 144 ; Check if the LCD is in VBlank
-   jr c, .waitVBlank
-
-;   ld a, [$C001]
-;   add a, 4
-;   ld [$FE04], a
-;   ld a, [$C000]
-;   add a, 4
-;   ld [$FE05], a
+;First Update Ball x, y With Velocities
 
 .velocityX
     inc b               ;x speed counter
@@ -583,10 +563,8 @@ ld [$FE05], a
     ;else add or subtract 1 to x, and reset b  (subtract = add %11111111)
     ld hl, $C000       ;ball x
     ld a, [$C004]      ;neg or pos x velocity
-    add a, [hl]        ;increment velocity in WRAM
+    add a, [hl]        ;increment ball x in WRAM
     ld [hl], a
-    ld [$FE01], a      ;and increment in OAM
-;    ld b, 0            ;reset counter
 
 
 .velocityY
@@ -598,13 +576,10 @@ ld [$FE05], a
 
     ld c, 0    ;reset counter
 
-    ;add or subtract 1 to y, and reset c  (subtract = add %11111111)
-    ld hl, $C001       ;ball y
-    ld a, [$C005]      ;neg or pos y velocity
+    ld hl, $C005
+    ld a, [$C001]
     add a, [hl]        ;increment velocity in WRAM
-    ld [hl], a
-    ld [$FE00], a      ;and increment in OAM
-    ;ld c, 0           ;reset counter y velocity
+    ld [$C001], a
 
 
 .gravity
@@ -616,13 +591,13 @@ jr .draw
     ;gravity acceleration
     inc d              ;gravity counter
     ld a, d
-  ;  ld hl, $C006       ;slows down grav acceleration
     cp a, 30
     jr nz, .draw       ;if != then goto .draw
 
     ld d, 0            ;reset counter
 
     ;check if at terminal velocity, if so, don't increment grav C006 anymore
+    ld hl, $C006       ;grav acceleration speed counter
     ld a, [hl]
     cp a, 230
     jr z, .gravMove
@@ -640,9 +615,16 @@ jr .draw
 
 
 .draw
-    ld a, [$C000]
+  .waitVBlank
+     ld a, [rLY]
+     cp 144 ; Check if the LCD is in VBlank
+     jr c, .waitVBlank
+
+     ;1140 M-cycles can be performed by the cpu during vblank
+
+    ld a, [$C000]   ;x
     ld [$FE01], a
-    ld a, [$C001]
+    ld a, [$C001]   ;y
     ld [$FE00], a
 
 
