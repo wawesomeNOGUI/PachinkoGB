@@ -230,6 +230,24 @@ Start:
     jr nz, .drawWallsRight
 
 
+.drawBottomCatchers
+    ld hl, $9A24
+    ld a, $81     ;left of jackpot
+    ld [hl], a
+
+    ld hl, $9A27  ;jackpot
+    ld a, $80
+    ld [hl], a
+
+    ld hl, $9A2B
+    ld a, $81
+    ld [hl], a
+
+    ld hl, $9A2E  ;right of jackpot
+    ld a, $80
+    ld [hl], a
+
+
 ;========================================
 ;Ball Variables Setup
 ;========================================
@@ -518,15 +536,12 @@ MainLoop:
   add a, [hl]
   ld [$C000], a
 
-;  .waitVBlankT
-;     ld a, [rLY]
-;     cp 144 ; Check if the LCD is in VBlank
-;     jr c, .waitVBlankT
-;
-;      ld a, [$C004]
-;      ld [$FE04], a
+.reachedBottom
+  ld a, [$C001]
+  cp a, $A0
+  jr c, .Animate   ;if greater than $A0
 
-  jr .Animate
+
 
 
 
