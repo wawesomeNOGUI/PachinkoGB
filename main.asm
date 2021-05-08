@@ -127,14 +127,14 @@ Start:
     ld l, d
     ld a, d       ;can only do hli with a
     ld [hli], a   ;ld x value into that location of WR & inc hl,
-    ;inc a         ;do 4 times to give more x's for pin hit detection
+    inc a         ;do 4 times to give more x's for pin hit detection
     ;ld [hli], a
     ;inc a
     ;ld [hli], a
     ;inc a
     ;ld [hli], a
-    ;inc a
-    ;ld [hl], a   ;24
+    inc a
+    ld [hl], a   ;24
     ld d, a      ;set d to a
 
     ld a, d
@@ -286,11 +286,11 @@ Start:
    ld a, 150
    ld [$FE05], a  ;x pos
 
-   ld a, $81
-   ld [$FE06], a  ;pattern number
+   ;ld a, $81
+   ;ld [$FE06], a  ;pattern number
 
-   ld a, 0  ;special sprite settings (bit 7 = 0, puts sprite over background and window)
-   ld [$FE07], a
+   ;ld a, 0  ;special sprite settings (bit 7 = 0, puts sprite over background and window)
+   ;ld [$FE07], a
 
 
 
@@ -360,7 +360,7 @@ Dropper:
     ;Dropper Movement Delay
     inc b
     ld a, b
-    cp a, 30        ;30 same starting x speed in [$C002]
+    cp a, 30        ;30 starting x speed in [$C002]
     jr nz, Dropper
 
     ld b, 0    ;reset counter
@@ -487,13 +487,20 @@ MainLoop:
 
     ld a, [$C003]     ;take some y velocity away from bounce loss
     cp a, 240
-    jr z, .xTake
-    add a, 15
+    jr nc, .xTake
+
+    ld a, %11111111
+    cp a, [hl]        ;check if ball going up
+    jr nz, .xTake
+
+    ld a, [$C003]
+    add a, 15         ;if going up take away velocity
     ld [$C003], a
-    .xTake
+
+    .xTake            ;take some x velocity away
     ld a, [$C002]
     cp a, 240
-    jr z, .Animate
+    jr nc, .Animate
     add a, 15
     ld [$C002], a
 
