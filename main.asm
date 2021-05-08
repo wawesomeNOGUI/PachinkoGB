@@ -127,7 +127,7 @@ Start:
     ld l, d
     ld a, d       ;can only do hli with a
     ld [hli], a   ;ld x value into that location of WR & inc hl,
-    inc a         ;do 4 times to give more x's for pin hit detection
+    ;inc a         ;do 4 times to give more x's for pin hit detection
     ;ld [hli], a
     ;inc a
     ;ld [hli], a
@@ -242,7 +242,7 @@ Start:
     ;the ball variables will be updated after every render
 
 
-    ld a, 30       ;starting x velocity
+    ld a, 130       ;starting x velocity
     ld [$C002], a  ;x velocity
     ld a, 255      ;starting y velocity
     ld [$C003], a  ;y velocity
