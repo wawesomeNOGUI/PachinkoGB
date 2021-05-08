@@ -242,9 +242,10 @@ Start:
     ;the ball variables will be updated after every render
 
 
-    ld a, 30       ;starting x and y velocity
-    ld [$C002], a ;x velocity
-    ld [$C003], a ;y velocity
+    ld a, 30       ;starting x velocity
+    ld [$C002], a  ;x velocity
+    ld a, 255      ;starting y velocity
+    ld [$C003], a  ;y velocity
 
     ld a, 1
     ld [$C004], a ;%11111111=negative, 1=positive x velocity
@@ -558,7 +559,7 @@ MainLoop:
                        ;(decrement so the Bigger $C002 is, the quicker the speed)
   ;  ld a, [$C002]      ;x speed (velocity)
   ;  cp a, b
-  ;  jr nz, .gravity   ;if != , jump to gravity
+  ;  jr nz, .draw   ;if != , jump to gravity
 
     ;else add or subtract 1 to x, and reset b  (subtract = add %11111111)
     ld hl, $C000       ;ball x
@@ -572,53 +573,51 @@ MainLoop:
     ld a, c
     ld hl, $C003       ;y speed
     cp a, [hl]
-    jr nz, .gravity
+    jr nz, .draw
 
     ld c, 0    ;reset counter
 
+    ;If ball goin up do grav to turn it around
+    ld a, [$C005]      ;neg or pos y velocity
+    cp a, %11111111    ;negative y velocity (ball moving up)
+    jr nz, .reg        ;else do downward accel
+
+    ;Do grav
+    ld a, [$C003]
+    ;inc [hl]           ;slow down upward movement
+    add a, 15
+    ld [$C003], a
+
+    cp a, 255          ;max slowness
+    jr nz, .resolve
+
+    ;set y speed counter to slowest speed (if $C003 not 255)
+    ;ld [hl], 255
+
+    ld a, %11111110    ;flip velocity direction
     ld hl, $C005
+    xor a, [hl]
+    ld [hl], a
+
+    .reg
+    ld a, [$C003]
+    cp a, 0
+    jr z, .resolve
+    sub a, 15
+    ld [$C003], a
+
+    .resolve
     ld a, [$C001]
+    ld hl, $C005
     add a, [hl]        ;increment velocity in WRAM
     ld [$C001], a
 
 
-.gravity
-
-
-jr .draw
-    ;jr z, .gravMove    ;if at max velocity goto grav move, else do acceleration
-
-    ;gravity acceleration
-    inc d              ;gravity counter
-    ld a, d
-    cp a, 30
-    jr nz, .draw       ;if != then goto .draw
-
-    ld d, 0            ;reset counter
-
-    ;check if at terminal velocity, if so, don't increment grav C006 anymore
-    ld hl, $C006       ;grav acceleration speed counter
-    ld a, [hl]
-    cp a, 230
-    jr z, .gravMove
-
-    ;else, accelerate
-    inc [hl]           ;accelerate
-
-
-.gravMove
-    ld a, [$C001]      ;ball y
-    inc a
-    ld [$FE00], a      ;move sprite in OAM
-    ld [$C001], a      ;move sprite y in WRAM
-
-
-
 .draw
-  .waitVBlank
-     ld a, [rLY]
-     cp 144 ; Check if the LCD is in VBlank
-     jr c, .waitVBlank
+    ld   hl,$FF41     ;-STAT Register
+    .wait:           ;
+    bit  1,[hl]       ; Wait until Mode is 0 or 1
+    jr   nz,.wait    ;
 
      ;1140 M-cycles can be performed by the cpu during vblank
 
