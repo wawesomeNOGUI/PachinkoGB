@@ -475,6 +475,9 @@ MainLoop:
     add a, [hl]
     ld [$C000], a
 
+    ld hl, $C002
+    inc [hl]
+
     ld a, %11111110
     ld hl, $C005     ;y neg or pos velocity
     xor a, [hl]      ;flip between %11111111 and %00000001 (add %11111111 == -1)
@@ -485,7 +488,7 @@ MainLoop:
     add a, [hl]
     ld [$C001], a
 
-    ld d, 0          ;gravity back to 0
+    ;ld d, 0          ;gravity back to 0
 ;    ld e, 0
 
 
@@ -549,7 +552,7 @@ MainLoop:
 .velocityX
     inc b               ;x speed counter
     ld a, b
-    ld hl, $C002        ;x speed
+    ld hl, $C002
     cp a, [hl]
     jr nz, .velocityY
 
