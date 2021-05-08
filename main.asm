@@ -133,8 +133,8 @@ Start:
     ;ld [hli], a
     ;inc a
     ;ld [hli], a
-    ;inc a
-    ;ld [hl], a   ;24
+    inc a
+    ld [hl], a   ;24
     ld d, a      ;set d to a
 
     ld a, d
@@ -624,12 +624,11 @@ MainLoop:
 
     nop
     nop
+    nop
+    nop
+    nop
+    nop
 
-    nop
-    nop
-    nop
-    nop
-    
 
 
      ;1140 M-cycles can be performed by the cpu during vblank
