@@ -231,21 +231,52 @@ Start:
 
 
 .drawBottomCatchers
-    ld hl, $9A24
+    ld hl, $9A25
     ld a, $81     ;left of jackpot
     ld [hl], a
 
-    ld hl, $9A27  ;jackpot
-    ld a, $80
-    ld [hl], a
-
-    ld hl, $9A2B
+    ld hl, $9A28  ;jackpot
     ld a, $81
     ld [hl], a
 
-    ld hl, $9A2E  ;right of jackpot
+    ld hl, $9A2A
     ld a, $80
     ld [hl], a
+
+    ld hl, $9A2D  ;right of jackpot
+    ld a, $80
+    ld [hl], a
+
+.drawScoreNumbersInCatchers
+    ld hl, $9A22  ;left 10
+    ld a, $31
+    ld [hli], a
+    ld a, $30
+    ld [hl], a
+
+    ld hl, $9A30  ;right 10
+    ld a, $31
+    ld [hli], a
+    ld a, $30
+    ld [hl], a
+
+    ld hl, $9A26  ;mid-left
+    ld a, $31
+    ld [hli], a
+    ld a, $35
+    ld [hl], a
+
+    ld hl, $9A2B  ;mid-right
+    ld a, $31
+    ld [hli], a
+    ld a, $35
+    ld [hl], a
+
+    ld hl, $9A29  ;jackpot
+    ld a, $2A
+    ld [hl], a
+
+
 
 
 ;========================================
