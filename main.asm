@@ -601,7 +601,7 @@ MainLoop:
 
     ld hl, $9800 ; This will print the string at the top-left corner of the screen
     ld de, HelloWorldStr
-.copyString
+  .copyString
     ld a, [de]
     ld [hli], a
     inc de
@@ -665,11 +665,16 @@ MainLoop:
 
 
 .velocityY
+    ;ld a, [$C003]     ;to allow for max speed
+    ;cp a, 0
+    ;jr z, .doStuff
     inc c              ;y speed counter
     ld a, c
     ld hl, $C003       ;y speed
     cp a, [hl]
     jr nz, .draw
+
+    .doStuff
 
     ld c, 0    ;reset counter
 
