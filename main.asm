@@ -303,6 +303,10 @@ Start:
     ld a, 164
     ld [$C006], a ;gravity speed counter
 
+    ld a, 0
+    ld [$C007], a ;player score 16-bit
+    ld [$C008], a
+
 
 
 
@@ -461,8 +465,8 @@ Dropper:
 
    ld b, 0   ;counter for velocity x & y (speed)
    ld c, 0   ;counter for loop
-   ld d, 0   ;counter for gravity
-   ld e, 0   ;second counter for gravity
+   ld d, 0
+   ld e, 0
 MainLoop:
 
 ;=====================
@@ -493,7 +497,7 @@ MainLoop:
    cp a, [hl]        ;x - [hl]  (check if [hl] == [$C000]) which means there's a pin there
 
    ;jr z, .CheckY     ;z == pin x there
-   jr nz, .Animate   ;if [hl] and [$C000] aren't the same, goto animate
+   jr nz, .reachedBottom   ;if [hl] and [$C000] aren't the same, goto animate
 
 
 
@@ -508,7 +512,7 @@ MainLoop:
 
    cp a, [hl]       ;y - [hl]  (check if [hl] == [$C001]) which means there's a pin there
    jr z, .bounce    ;z == pin there
-   jr nz, .Animate
+   jr nz, .reachedBottom
 
    ;If the Program Counter Gets here, that means the ball's x & y were over
    ;a pin, so bounce!
@@ -553,7 +557,7 @@ MainLoop:
     sub a, 1
     ld [$C002], a
 
-    jr .Animate
+    jr .reachedBottom
 
 
 .hitWall           ;if hit wall, flip x velocity
@@ -571,6 +575,39 @@ MainLoop:
   ld a, [$C001]
   cp a, $A0
   jr c, .Animate   ;if greater than $A0
+
+  ld a, [$C007]
+  ld l, a
+  ld a, [$C008]
+  ld h, a
+
+  ld a, l
+  add a, $37 ; Process the low 8 bits...
+  ld l, a ; Store back
+  ld a, h
+  adc a, $13 ; Process the upper 8 bits, counting the carry that may have stemmed from the low 8 bits
+  ld h, a
+
+  ld a, l
+  ld [$C007], a
+  ld a, h
+  ld [$C008], a
+
+  ;Draw New Score
+  .waitVBlankScore
+      ld a, [rLY]
+      cp 144 ; Check if the LCD is past VBlank
+      jr c, .waitVBlankScore
+
+    ld hl, $9800 ; This will print the string at the top-left corner of the screen
+    ld de, HelloWorldStr
+.copyString
+    ld a, [de]
+    ld [hli], a
+    inc de
+    and a ; Check if the byte we just copied is zero
+    jr nz, .copyString ; Continue if it's not
+
 
 
 
@@ -695,7 +732,6 @@ MainLoop:
     ld [$FE01], a
     ld a, [$C001]   ;y
     ld [$FE00], a
-
 
     jp MainLoop   ;return to main loop
 
